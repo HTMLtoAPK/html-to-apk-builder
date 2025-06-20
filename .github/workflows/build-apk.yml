@@ -44,8 +44,11 @@ jobs:
 
       # 7. Inject the user's HTML code into the app's main file
       - name: Inject User HTML
+        env:
+          HTML_CONTENT: ${{ github.event.client_payload.htmlCode }}
         run: |
-          echo "${{ github.event.client_payload.htmlCode }}" > temp_build/www/index.html
+          echo "$HTML_CONTENT" > temp_build/www/index.html
+          # Also remove default cordova JS and CSS to make it truly the user's code
           rm temp_build/www/js/index.js
           rm temp_build/www/css/index.css
 
