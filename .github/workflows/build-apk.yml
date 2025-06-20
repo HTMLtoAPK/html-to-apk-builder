@@ -2,7 +2,6 @@
 
 name: Build Android APK
 
-# This workflow is triggered by an API call (repository_dispatch)
 on:
   repository_dispatch:
     types: [build-apk]
@@ -16,12 +15,12 @@ jobs:
         uses: actions/checkout@v3
 
       # 2. Set up Java Development Kit (JDK) for Android
+      # We have removed 'cache: gradle' because the gradle files do not exist yet.
       - name: Set up JDK 11
         uses: actions/setup-java@v3
         with:
           java-version: '11'
           distribution: 'temurin'
-          cache: 'gradle'
 
       # 3. Set up Node.js, which is needed to run Cordova
       - name: Set up Node.js
@@ -48,7 +47,6 @@ jobs:
       - name: Inject User HTML
         run: |
           echo "${{ github.event.client_payload.htmlCode }}" > temp_build/www/index.html
-          # Also remove default cordova JS and CSS to make it truly the user's code
           rm temp_build/www/js/index.js
           rm temp_build/www/css/index.css
 
@@ -64,7 +62,7 @@ jobs:
 
       # 10. Upload the generated APK as a workflow artifact
       - name: Upload APK
-        uses: actions/upload-artifact@v4 # <-- THIS IS THE FIX
+        uses: actions/upload-artifact@v4
         with:
           name: built-apk
           path: temp_build/platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
