@@ -48,23 +48,21 @@ jobs:
       - name: Install Android Build Tools
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;32.0.0"
 
+      # THIS IS THE KEY FIX - We explicitly tell it to build an APK
       - name: Build Android APK
-        run: cordova build android --release
+        run: cordova build android --release -- --packageType=apk
         working-directory: ./temp_build
 
       - name: Find and Verify APK Path
         id: find_apk
         run: |
-          # Search the entire android platform directory for the APK. This is the most reliable method.
           APK_PATH=$(find temp_build/platforms/android/ -type f -name "*.apk" | head -n 1)
-          # CRITICAL: Check if the APK_PATH variable is empty. If so, the find command failed.
           if [[ -z "$APK_PATH" ]]; then
-            echo "::error::Build succeeded, but no APK file was found!"
-            echo "Listing contents of likely output directory for debugging..."
+            echo "::error::Build FAILED to create an APK file."
+            echo "Listing contents of output directory for debugging..."
             ls -R temp_build/platforms/android/app/build/outputs/
             exit 1
           fi
-          # If we get here, the APK was found successfully.
           echo "Successfully found APK at: $APK_PATH"
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
 
