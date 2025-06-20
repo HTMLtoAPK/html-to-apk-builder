@@ -58,15 +58,13 @@ jobs:
         working-directory: ./temp_build
 
       # 9. Build the unsigned release APK
-      # NOTE: This creates a debuggable/unsigned APK. It cannot be published to the Play Store
-      # but is perfect for testing and direct installation.
       - name: Build Android APK
         run: cordova build android --release
         working-directory: ./temp_build
 
       # 10. Upload the generated APK as a workflow artifact
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # <-- THIS IS THE FIX
         with:
           name: built-apk
           path: temp_build/platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
