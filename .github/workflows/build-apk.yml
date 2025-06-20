@@ -13,12 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout the repository code (even though we don't use it, it's good practice)
+      # 1. Checkout the repository code
       - name: Checkout repository
         uses: actions/checkout@v4
 
       # 2. Set up Java Development Kit (JDK)
-      # The latest Android SDK tools require Java 17.
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -26,11 +25,11 @@ jobs:
           distribution: 'temurin'
 
       # 3. Set up Node.js, which is required to run Cordova
+      # We remove 'cache: npm' because we don't have a package-lock.json in our repo.
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '16'
-          cache: 'npm'
 
       # 4. Install Cordova CLI globally
       - name: Install Cordova
@@ -49,16 +48,15 @@ jobs:
           HTML_CONTENT: ${{ github.event.client_payload.htmlCode }}
         run: |
           echo "$HTML_CONTENT" > temp_build/www/index.html
-          # Also remove default cordova JS and CSS to make it truly the user's code
           rm temp_build/www/js/index.js
-          rm temp_build/www/css/index.css
+          rm temp_build/www/css/index.js
 
       # 7. Add the Android platform to the project
       - name: Add Android Platform
         run: cordova platform add android@11
         working-directory: ./temp_build
 
-      # 8. Install the specific Android build-tools version required by this Cordova version
+      # 8. Install the specific Android build-tools version required
       - name: Install Android Build Tools
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;32.0.0"
 
@@ -68,7 +66,6 @@ jobs:
         working-directory: ./temp_build
 
       # 10. Find the APK to upload
-      # This is the most robust way to find the APK. It creates a file containing the path.
       - name: Find APK path
         id: find_apk
         run: |
