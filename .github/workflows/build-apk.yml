@@ -2,30 +2,35 @@
 
 name: Build Android APK
 
+# This workflow is triggered by an API call from your index.html
 on:
   repository_dispatch:
     types: [build-apk]
 
 jobs:
   build:
+    # Use the latest available Ubuntu runner
     runs-on: ubuntu-latest
+
     steps:
-      # 1. Checkout the repository code
+      # 1. Checkout the repository code (even though we don't use it, it's good practice)
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # 2. Set up Java Development Kit (JDK)
+      # The latest Android SDK tools require Java 17.
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3. Set up Node.js, which is needed to run Cordova
+      # 3. Set up Node.js, which is required to run Cordova
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '16'
+          cache: 'npm'
 
       # 4. Install Cordova CLI globally
       - name: Install Cordova
@@ -34,40 +39,47 @@ jobs:
       # 5. Create the Cordova Project using data from the API call
       - name: Create Cordova Project
         run: >
-          cordova create temp_build 
-          "${{ github.event.client_payload.packageId }}" 
+          cordova create temp_build
+          "${{ github.event.client_payload.packageId }}"
           "${{ github.event.client_payload.appName }}"
 
-      # 6. Navigate into the new project directory
-      - name: Navigate to project folder
-        run: cd temp_build
-
-      # 7. Inject the user's HTML code into the app's main file
+      # 6. Inject the user's HTML code into the app's main file
       - name: Inject User HTML
         env:
           HTML_CONTENT: ${{ github.event.client_payload.htmlCode }}
         run: |
           echo "$HTML_CONTENT" > temp_build/www/index.html
+          # Also remove default cordova JS and CSS to make it truly the user's code
           rm temp_build/www/js/index.js
           rm temp_build/www/css/index.css
 
-      # 8. Add the Android platform to the project
+      # 7. Add the Android platform to the project
       - name: Add Android Platform
         run: cordova platform add android@11
         working-directory: ./temp_build
 
-      # 9. Install the specific Android build-tools version required
+      # 8. Install the specific Android build-tools version required by this Cordova version
       - name: Install Android Build Tools
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;32.0.0"
 
-      # 10. Build the unsigned release APK
+      # 9. Build the unsigned release APK
       - name: Build Android APK
         run: cordova build android --release
         working-directory: ./temp_build
+
+      # 10. Find the APK to upload
+      # This is the most robust way to find the APK. It creates a file containing the path.
+      - name: Find APK path
+        id: find_apk
+        run: |
+          APK_PATH=$(find temp_build/platforms/android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          echo "Found APK at: $APK_PATH"
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
 
       # 11. Upload the generated APK as a workflow artifact
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: built-apk
-          path: temp_build/platforms/android/app/build/outputs/apk/release/app-release.apk
+          path: ${{ steps.find_apk.outputs.apk_path }}
+          if-no-files-found: error # Fail the build if the APK is not found
