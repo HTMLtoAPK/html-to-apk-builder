@@ -15,7 +15,6 @@ jobs:
         uses: actions/checkout@v3
 
       # 2. Set up Java Development Kit (JDK)
-      # The latest sdkmanager requires Java 17.
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
@@ -49,7 +48,6 @@ jobs:
           HTML_CONTENT: ${{ github.event.client_payload.htmlCode }}
         run: |
           echo "$HTML_CONTENT" > temp_build/www/index.html
-          # Also remove default cordova JS and CSS to make it truly the user's code
           rm temp_build/www/js/index.js
           rm temp_build/www/css/index.css
 
@@ -72,4 +70,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: built-apk
-          path: temp_build/platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          path: temp_build/platforms/android/app/build/outputs/apk/release/app-release.apk
