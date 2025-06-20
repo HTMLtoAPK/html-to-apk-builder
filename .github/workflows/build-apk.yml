@@ -1,0 +1,72 @@
+# .github/workflows/build-apk.yml
+
+name: Build Android APK
+
+# This workflow is triggered by an API call (repository_dispatch)
+on:
+  repository_dispatch:
+    types: [build-apk]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Set up Java Development Kit (JDK) for Android
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      # 3. Set up Node.js, which is needed to run Cordova
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      # 4. Install Cordova CLI globally
+      - name: Install Cordova
+        run: npm install -g cordova
+
+      # 5. Create the Cordova Project using data from the API call
+      - name: Create Cordova Project
+        run: >
+          cordova create temp_build 
+          "${{ github.event.client_payload.packageId }}" 
+          "${{ github.event.client_payload.appName }}"
+
+      # 6. Navigate into the new project directory
+      - name: Navigate to project folder
+        run: cd temp_build
+
+      # 7. Inject the user's HTML code into the app's main file
+      - name: Inject User HTML
+        run: |
+          echo "${{ github.event.client_payload.htmlCode }}" > temp_build/www/index.html
+          # Also remove default cordova JS and CSS to make it truly the user's code
+          rm temp_build/www/js/index.js
+          rm temp_build/www/css/index.css
+
+      # 8. Add the Android platform to the project
+      - name: Add Android Platform
+        run: cordova platform add android@11
+        working-directory: ./temp_build
+
+      # 9. Build the unsigned release APK
+      # NOTE: This creates a debuggable/unsigned APK. It cannot be published to the Play Store
+      # but is perfect for testing and direct installation.
+      - name: Build Android APK
+        run: cordova build android --release
+        working-directory: ./temp_build
+
+      # 10. Upload the generated APK as a workflow artifact
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: built-apk
+          path: temp_build/platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
