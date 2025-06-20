@@ -56,7 +56,7 @@ jobs:
 
       # 9. Install the specific Android build-tools version required
       - name: Install Android Build Tools
-        run: yes | sdkmanager "build-tools;32.0.0"
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;32.0.0"
 
       # 10. Build the unsigned release APK
       - name: Build Android APK
