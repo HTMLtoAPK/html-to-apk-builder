@@ -25,7 +25,6 @@ jobs:
           distribution: 'temurin'
 
       # 3. Set up Node.js, which is required to run Cordova
-      # We remove 'cache: npm' because we don't have a package-lock.json in our repo.
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -42,14 +41,15 @@ jobs:
           "${{ github.event.client_payload.packageId }}"
           "${{ github.event.client_payload.appName }}"
 
-      # 6. Inject the user's HTML code into the app's main file
+      # 6. Inject User HTML and clean up default files
       - name: Inject User HTML
         env:
           HTML_CONTENT: ${{ github.event.client_payload.htmlCode }}
         run: |
           echo "$HTML_CONTENT" > temp_build/www/index.html
-          rm temp_build/www/js/index.js
-          rm temp_build/www/css/index.js
+          # Use rm -f to remove the default files without error if they don't exist
+          rm -f temp_build/www/js/index.js
+          rm -f temp_build/www/css/index.css
 
       # 7. Add the Android platform to the project
       - name: Add Android Platform
@@ -79,4 +79,4 @@ jobs:
         with:
           name: built-apk
           path: ${{ steps.find_apk.outputs.apk_path }}
-          if-no-files-found: error # Fail the build if the APK is not found
+          if-no-files-found: error
